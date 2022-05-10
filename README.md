@@ -1,198 +1,188 @@
-# PyTorch-YOLOv3
-A minimal PyTorch implementation of YOLOv3, with support for training, inference and evaluation.
+# YOLOv3 pytorch implementation in python 2.7
+## Table of contents
+- [Environment](#Environment)
+- [Installation](#Installation)
+- [Custom Dataset settings](#How-to-construct-your-custom-dataset)
+- [Training YOLO model](#How-to-train-YOLOv3-model-with-your-custom-dataset)
+- [Testing weights](#How-to-test-YOLOv3-model-weights)
+- [Detecting objects](#How-to-detect-objects-in-images-with-trained-YOLO-model)
 
-[![Ubuntu CI](https://github.com/eriklindernoren/PyTorch-YOLOv3/actions/workflows/main.yml/badge.svg)](https://github.com/eriklindernoren/PyTorch-YOLOv3/actions/workflows/main.yml) [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pytorchyolo.svg)](https://pypi.python.org/pypi/pytorchyolo/) [![PyPI license](https://img.shields.io/pypi/l/pytorchyolo.svg)](LICENSE)
+## Environment
+> - Ubuntu 18.04, Python 2.7
+> ### Before you use this repository, we recommend you to install CUDA toolkit and cudnn
+> - Python 2.7 and torch 1.4.0, the recommended compatible version of CUDA toolkit is  10.x (10.0, 10.1 or 10.2) and cudnn is 7.6.5
 
 ## Installation
-### Installing from source
-
-For normal training and evaluation we recommend installing the package from source using a poetry virtual environment.
-
-```bash
-git clone https://github.com/eriklindernoren/PyTorch-YOLOv3
-cd PyTorch-YOLOv3/
-pip3 install poetry --user
-poetry install
-```
-
-You need to join the virtual environment by running `poetry shell` in this directory before running any of the following commands without the `poetry run` prefix.
-Also have a look at the other installing method, if you want to use the commands everywhere without opening a poetry-shell.
-
-#### Download pretrained weights
-
-```bash
-./weights/download_weights.sh
-```
-
-#### Download COCO
-
-```bash
-./data/get_coco_dataset.sh
-```
-
-### Install via pip
-
-This installation method is recommended, if you want to use this package as a dependency in another python project.
-This method only includes the code, is less isolated and may conflict with other packages.
-Weights and the COCO dataset need to be downloaded as stated above.
-See __API__ for further information regarding the packages API.
-It also enables the CLI tools `yolo-detect`, `yolo-train`, and `yolo-test` everywhere without any additional commands.
-
-```bash
-pip3 install pytorchyolo --user
-```
-
-## Test
-Evaluates the model on COCO test dataset.
-To download this dataset as well as weights, see above.
-
-```bash
-poetry run yolo-test --weights weights/yolov3.weights
-```
-
-| Model                   | mAP (min. 50 IoU) |
-| ----------------------- |:-----------------:|
-| YOLOv3 608 (paper)      | 57.9              |
-| YOLOv3 608 (this impl.) | 57.3              |
-| YOLOv3 416 (paper)      | 55.3              |
-| YOLOv3 416 (this impl.) | 55.5              |
-
-## Inference
-Uses pretrained weights to make predictions on images. Below table displays the inference times when using as inputs images scaled to 256x256. The ResNet backbone measurements are taken from the YOLOv3 paper. The Darknet-53 measurement marked shows the inference time of this implementation on my 1080ti card.
-
-| Backbone                | GPU      | FPS      |
-| ----------------------- |:--------:|:--------:|
-| ResNet-101              | Titan X  | 53       |
-| ResNet-152              | Titan X  | 37       |
-| Darknet-53 (paper)      | Titan X  | 76       |
-| Darknet-53 (this impl.) | 1080ti   | 74       |
-
-```bash
-poetry run yolo-detect --images data/samples/
-```
-
-<p align="center"><img src="https://github.com/eriklindernoren/PyTorch-YOLOv3/raw/master/assets/giraffe.png" width="480"\></p>
-<p align="center"><img src="https://github.com/eriklindernoren/PyTorch-YOLOv3/raw/master/assets/dog.png" width="480"\></p>
-<p align="center"><img src="https://github.com/eriklindernoren/PyTorch-YOLOv3/raw/master/assets/traffic.png" width="480"\></p>
-<p align="center"><img src="https://github.com/eriklindernoren/PyTorch-YOLOv3/raw/master/assets/messi.png" width="480"\></p>
-
-## Train
-For argument descriptions have a look at `poetry run yolo-train --help`
-
-#### Example (COCO)
-To train on COCO using a Darknet-53 backend pretrained on ImageNet run: 
-
-```bash
-poetry run yolo-train --data config/coco.data  --pretrained_weights weights/darknet53.conv.74
-```
-
-#### Tensorboard
-Track training progress in Tensorboard:
-* Initialize training
-* Run the command below
-* Go to http://localhost:6006/
-
-```bash
-poetry run tensorboard --logdir='logs' --port=6006
-```
-
-Storing the logs on a slow drive possibly leads to a significant training speed decrease.
-
-You can adjust the log directory using `--logdir <path>` when running `tensorboard` and `yolo-train`.
-
-## Train on Custom Dataset
-
-#### Custom model
-Run the commands below to create a custom model definition, replacing `<num-classes>` with the number of classes in your dataset.
-
-```bash
-./config/create_custom_model.sh <num-classes>  # Will create custom model 'yolov3-custom.cfg'
-```
-
-#### Classes
-Add class names to `data/custom/classes.names`. This file should have one row per class name.
-
-#### Image Folder
-Move the images of your dataset to `data/custom/images/`.
-
-#### Annotation Folder
-Move your annotations to `data/custom/labels/`. The dataloader expects that the annotation file corresponding to the image `data/custom/images/train.jpg` has the path `data/custom/labels/train.txt`. Each row in the annotation file should define one bounding box, using the syntax `label_idx x_center y_center width height`. The coordinates should be scaled `[0, 1]`, and the `label_idx` should be zero-indexed and correspond to the row number of the class name in `data/custom/classes.names`.
-
-#### Define Train and Validation Sets
-In `data/custom/train.txt` and `data/custom/valid.txt`, add paths to images that will be used as train and validation data respectively.
-
-#### Train
-To train on the custom dataset run:
-
-```bash
-poetry run yolo-train --model config/yolov3-custom.cfg --data config/custom.data
-```
-
-Add `--pretrained_weights weights/darknet53.conv.74` to train using a backend pretrained on ImageNet.
+> ### Installing from github
+> ```bash
+> git clone https://github.com/hjinnkim/yolov3-python2.7.git
+> cd yolov3-python2.7/
+> python -m pip install -r requirements.txt
+> ```
+> Above commands let you download this repository and install the required python packages
+> ### Download pretrained weights
+> ```bash
+> sh ./weights/download_weights.sh
+> ```
+> ### If you finished following above instructions, your directory looks like below:
+> ![Screenshot from 2022-04-26 09-30-07](https://user-images.githubusercontent.com/89929547/165195729-c44aa8a7-4eef-4500-a7d2-62731d48a7a8.png)
 
 
-## API
+## How to construct your custom dataset
+Actually, you can place your custom dataset anywhere in your workstation, but we recommend that you follow below method.
+> ### 1. Place your custom dataset under *"data"* directory
+> ![Screenshot from 2022-03-22 11-18-38](https://user-images.githubusercontent.com/89929547/159394789-c02226ea-c7fb-4515-be42-e8df4909766a.png)
+> ### You can see the overall custom dataset structure. We will explain the structure one by one.
+> 1.1. In your custom dataset directory, you have two directories, *"images"*, *"labels"*, and two text files, *"train.txt"*, *"val"*.
+> 
+> 1.2. In the *"train"* directory inside the *"images"* directory, there are images for training your model. In the *"val"* directory inside the *"images"* directory, there are images for validating your model. 
+> 
+> 1.3. In the *"train"* directory inside the *"labels"* directory, there are labels for training images (ground truth). In the *"val"* directory inside the *"images"* directory, there are labels for validating images.
+> 
+> 1.4. The corresponding image and label must have same name except for file format. 
+> ![Screenshot from 2022-03-22 11-48-43](https://user-images.githubusercontent.com/89929547/159398074-82db19a7-26d8-4193-8ef8-99afa8588208.png)
+> 
+> Above structure is an example. Your custom dataset can have as many images as you want.
+> 
+> 1.5. *"train.txt"* contains training image absolute paths. *"valid.txt"* contains validating image absolute paths. 
+> ~~~
+> # In your train.txt file
+> /home/[username]/yolov3_python2.7/data/custom/images/train/0196.jpg
+> /home/[username]/yolov3_python2.7/data/custom/images/train/210805_0307.jpg
+> /home/[username]/yolov3_python2.7/data/custom/images/train/0463.jpg
+> /home/[username]/yolov3_python2.7/data/custom/images/train/210805_0214.jpg
+> ...
+> ~~~
+> ~~~
+> # In your valid.txt file
+> /home/[username]/yolov3_python2.7/data/custom/images/val/v_0519.jpg
+> /home/[username]/yolov3_python2.7/data/custom/images/val/v_0464.jpg
+> /home/[username]/yolov3_python2.7/data/custom/images/val/v_0476.jpg
+> /home/[username]/yolov3_python2.7/data/custom/images/val/v_0275.jpg
+> ...
+> ~~~
+> 
+> ### 2. Make **"custom.names"** file in **"data"** directory
+> **"custom.names"** file contains class names of your custom dataset
+> 
+> ![Screenshot from 2022-03-22 13-23-25](https://user-images.githubusercontent.com/89929547/159407697-b862a34b-742c-427d-a014-7089dcf0f893.png)
+> 
+> ### 3. Make **"custom.data"** file in *"config"* directory
+> **"custom.data"** file contains the number of classes and relative paths of **"custom.names"** file, **"train.txt"** file, **"valid.txt"** file. The base directory is *"yolov3-python2.7"*.
+> 
+> ![Screenshot from 2022-03-22 13-22-55](https://user-images.githubusercontent.com/89929547/159407729-1c5be8b6-0483-4b84-8b91-09181f190f8a.png)
 
-You are able to import the modules of this repo in your own project if you install the pip package `pytorchyolo`.
+## How to train YOLOv3 model with your custom dataset
+> ### YOLOv3 model structure is described in cfg file. The cfg file are recommended to be contained in **config"" directory.
+> ~~~
+> config/yolov3.cfg
+> config/yolov3-tiny.cfg
+> ~~~
+> 
+> Using the cfg file, you can build your YOLO model.
+> ### You can train YOLOv3 model with your custom dataset by running the below command:
+> ```bash
+> # Make sure that your current working directory is yolov3-python2.7
+> python yolo/train.py
+> ``` 
+>
+> In this case, you train YOLO model with some default settings. The default settings are as follows:
+> ~~~
+> 1. Using "YOLOv3-tiny" model
+> 2. Using pretrained *"YOLOv3-tiny"* weights
+> 3. Training epochs : 100
+> 4. Using dataset information in "config/custom.data"
+> and some other parameters
+> ~~~
+> These default settings can be checked in the run() function in **"train.py"** code. If you want to change traing settings, you can directly change default settings in **"train.py"** code.
+> 
+> ### Also, you can give arguments when running **"train.py"** in command line
+> ```bash
+> # For example
+> python yolo/train.py --model "config/yolov3.cfg" --pretrained_weights "weights/yolov3.weights" --epochs 30
+> ``` 
+> #### 1. You can choose model with option *"--model"*
+> ```bash
+> # If you want to use YOLOv3 model
+> python yolo/train.py --model "config/yolov3.cfg" 
+> ```
+> #### 2. You can choose the pretrained weights with option *"--pretrained_weights"*
+> ```bash
+> # If you want to use the pretrained YOLOv3 weights
+> python yolo/train.py --pretrained_weights "weights/yolov3.weights"
+> ```
+> 
+> When choosing model structure and the pretrained weights, **you must choose the corresponding weights with the model.** For example, if you want to use YOLOv3 model, you need to use the pretrained weights trained in YOLOv3. If not, error will be occur.
+>
+> #### 3. You can change training epochs with option *"--epochs"*
+> ```bash
+> # If you want to train the model by 30 epochs
+> python yolo/train.py --epochs 30
+> ```
+> #### 4. You can change dataset information with option *"--data"*
+> ```bash
+> # If you want to change the dataset information
+> python yolo/train.py --data "config/custom.data"
+> ```
+> 
+> The dataloader for the model is based on the path inside the **.data** file. You have to exactly write the path inside the **.data** file.
+> 
+> ### Other options
+> - **n_cpu**
+>   This option is for pytorch dataloader. The defulat value is 8. We recommend you to check the number of cpu cores by running follow command:
+>   ```bash
+>   lscpu | grep Core
+>   ```
+>   Then, the following output will be showing
+>   
+>   ![Screenshot from 2022-03-22 14-39-20](https://user-images.githubusercontent.com/89929547/159415234-bcf1d6b5-583b-4ce1-848f-6f2cdc3a2743.png)
+>   
+>   We recommend you to set **n_cpu** as the number of cores
+>   ```bash
+>   python yolo/train.py --n_cpu 8
+>   ```
+> - **verbose**
+>     This options will show you more detailed training result at each epoch.
+>   ```bash
+>   python yolo/train.py --verbose
+>   ```
+> ### Trained weights are saved in "checkpoints" directory
+> ```bash
+> checkpoints/custom_weight_{epoch}.pth
+> ``` 
+> ### Using GPU accelearation
+> If your workstation has the nvidia gpu and you have installed cuda toolkit, the gpu will be used during training. You can check gpu memory usage and gpu usage by following command:
+> ```bash
+>  watch -n 0.5 nvidia-smi
+>  ```
+> If **CUDA out of memory** error occurs, you need to change the parameter inside **.cfg** file. In the **.cfg** file, you can see *batch* parameter.
+> 
+> ![Screenshot from 2022-03-22 15-07-33](https://user-images.githubusercontent.com/89929547/159418387-bfa285a4-74d2-4406-9eeb-df958e3c0e1f.png)
+> 
+> You have to decrease the *batch* parameter until **CUDA out of memory** error doesn't occurs.
+>  
+> In opposite case, if gpu memory usage is too low, I recommend you to increase the parameter. 
+> 
+> We recommend you set the parameter as power of 2.
+## How to test YOLOv3 model weights
+> ### It is very similar to training
+>  ```bash
+>  # For example
+>  python yolo/test.py --weights "checkpoints/custom_weight_{epochs}.pth" --data "config/custom.data" 
+>  ```
+> Then, the positive true mAP will be shown
+## How to detect objects in images with trained YOLO model
+> You can detect obejcts in images with your custom trained YOLO model
+> <br>1. Make a directory for detected images. Place images in the directory.
+> <br>2. Give an option for the detected directory path when running **detect.py** code. (default option is **data/samples**)
+> <br>3. Give an option for model configuration file path when running **detect.py** code. (default option is **config/yolov3-tiny.cfg**)
+> <br>4. Give an option for the trained weights (default option is **weights/yolov3-tiny.weights**)
+> <br>5. Give an option for the class name (default option is **data/custom.names**)
+>  ```bash
+>  # For example
+>  python yolo/detect.py --images "data/samples" --weights "checkpoints/custom_weight_{epochs}.pth" --classes "data/custom.names" 
+>  ```
+>  Then, the output images will be generated in **data/output** (**data/output** directory is default option. If the given option path is not directory, the running code will create the directory automatically.)
 
-An example prediction call from a simple OpenCV python script would look like this:
-
-```python
-import cv2
-from pytorchyolo import detect, models
-
-# Load the YOLO model
-model = models.load_model(
-  "<PATH_TO_YOUR_CONFIG_FOLDER>/yolov3.cfg", 
-  "<PATH_TO_YOUR_WEIGHTS_FOLDER>/yolov3.weights")
-
-# Load the image as a numpy array
-img = cv2.imread("<PATH_TO_YOUR_IMAGE>")
-
-# Convert OpenCV bgr to rgb
-img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-# Runs the YOLO model on the image 
-boxes = detect.detect_image(model, img)
-
-print(boxes)
-# Output will be a numpy array in the following format:
-# [[x1, y1, x2, y2, confidence, class]]
-```
-
-For more advanced usage look at the method's doc strings.
-
-## Credit
-
-### YOLOv3: An Incremental Improvement
-_Joseph Redmon, Ali Farhadi_ <br>
-
-**Abstract** <br>
-We present some updates to YOLO! We made a bunch
-of little design changes to make it better. We also trained
-this new network that’s pretty swell. It’s a little bigger than
-last time but more accurate. It’s still fast though, don’t
-worry. At 320 × 320 YOLOv3 runs in 22 ms at 28.2 mAP,
-as accurate as SSD but three times faster. When we look
-at the old .5 IOU mAP detection metric YOLOv3 is quite
-good. It achieves 57.9 AP50 in 51 ms on a Titan X, compared
-to 57.5 AP50 in 198 ms by RetinaNet, similar performance
-but 3.8× faster. As always, all the code is online at
-https://pjreddie.com/yolo/.
-
-[[Paper]](https://pjreddie.com/media/files/papers/YOLOv3.pdf) [[Project Webpage]](https://pjreddie.com/darknet/yolo/) [[Authors' Implementation]](https://github.com/pjreddie/darknet)
-
-```
-@article{yolov3,
-  title={YOLOv3: An Incremental Improvement},
-  author={Redmon, Joseph and Farhadi, Ali},
-  journal = {arXiv},
-  year={2018}
-}
-```
-
-## Other
-
-### YOEO — You Only Encode Once
-
-[YOEO](https://github.com/bit-bots/YOEO) extends this repo with the ability to train an additional semantic segmentation decoder. The lightweight example model is mainly targeted towards embedded real-time applications.
+## Reference
+The reference for this repository is https://github.com/eriklindernoren/PyTorch-YOLOv3
